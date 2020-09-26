@@ -14,9 +14,7 @@
 //  Denis Mottet - Univ Montpellier - France
 //
 // Versions
-//  Version 1.0.0 -- D. Mottet -- Oct 10, 2019
-//  Version 1.0.1 -- D. Mottet -- Apr 11, 2020
-//      with input (from DAT) and ouptut (to RES)
+//  Version 1.0.0 -- D. Mottet -- SEpt 26, 2020
 
 // The main script always contains two parts : 
 //  1°) set up of working environement 
@@ -34,61 +32,73 @@ exec(FullFileInitTRT);
 ////////////////////////////////////////////////////////////////////////////////
 // **** SECOND : Do things ****
 
-////////////////////////////////////////////////////////////////////////////////
-// BEG : code example : plot a signal + noise 
-// 
-// PART 0 : read an input file
-fnameIn = fullfile(DAT_PATH, "Frequencies.csv"); 
-separator = " "; 
+// PART 0 : read input file(s)
+fnameIn_A = fullfile(DAT_PATH, "A_data.txt"); 
+fnameIn_B = fullfile(DAT_PATH, "B_data.txt"); 
+separator = ","; 
 decimal   = "."; 
-Txt = csvRead(fnameIn, separator, decimal, "string" );
-Val = csvRead(fnameIn, separator, decimal, "double" );
 
-SampFreq   = Val(2, 1);                // Sampling frequency (Hz)
-SignalFreq = Val(2, 2);                // Signal frequency (Hz)
-NoiseFreq  = Val(2, 3);                // Noise frequency (Hz)
-CutFreq    = Val(2, 4);                // cutoff frequency (Hz)
+A = csvRead(fnameIn_A, separator, decimal, "double" );
+B = csvRead(fnameIn_B, separator, decimal, "double" );
 
-// PART 1 : computations 
+// simplify the data : keep only last column 
+A = A(:,$); 
+B = B(:,$); 
 
-// Generate a signal (low frequency) + noise (high frequency)
-Duration = 5;                       // Duration of signal (s)
-T = 0 : 1./SampFreq : Duration;     // Time (over Duration sec)
-T = T';                             // Time as a column vector 
+// create a known delay (for testing purpose)
+if %T then
+    d = -12; write(%io(2), sprintf("The KNOWN lag is %d samples ", d) )
+    if d >= 0 then 
+        B = A(d+1:$); // create data using A only 
+        A = A(1:$-d); 
+    else
+        B = A(1:$+d); // create data using A only 
+        A = A(abs(d)+1:$); 
+    end
+    // switch A and B (for tests)
+    write(%io(2), sprintf("A and B were reversed: this changes the sign of the lag") )
+    C = B; 
+    B = A; 
+    A = C; 
+end
 
-Ss =   1 .* cos(2 .* %pi .* SignalFreq .* T);     // Amplitude 1
-Sn = 0.1 .* cos(2 .* %pi .* NoiseFreq  .* T);     // Amplitude 0.1 
-S = Ss + Sn;                        // S contains two signals  
+[delay, lags, c] = getDelayBetweenSignals(A, B)
 
-// lowpass the signal 
+figure()
+plot(lags, c')
+xlabel ("lag")
+xlabel ("correlation A-B")
+title(sprintf("Maximum correlation for a delay of %+d samples", delay))
 
-Sf = LowPassButtDouble (S, SampFreq, CutFreq);  // filter
+write(%io(2), sprintf("The lag FOUND is %d samples ", delay) )
+write(%io(2), sprintf("Signal A(t) ressembles signal B(t%+d)", delay) )
 
-// PART 2 : illustrations  
-fig = 1;    
-figure(fig);clf; 
-plot(T, S,  '-k')
-plot(T, Sf, '-b')
-xlabel("Time (s)")
-ylabel("Amplitude (unit?)")
-xtitle("Signal as a function of time")
-legend("S", "Sf")
+// we need "time" for the x axis of the plot... 
+Time = 1:length(A);    // create time = index of line in A (or B)
+Time = Time';         // make it a column vector 
+TimeB = Time + delay;  // new time for signal B
+
+figure()
+
+plot(Time, A, '-b')
+plot(Time, B, '-k')
+plot(TimeB, B, '-r')
+legend("Signal A", "Signal B", "Signal B (sync with A)")
+xlabel("Sample number")
+ylabel("Signal value")
+title(sprintf("Signal A(t) ressembles signal B(t%+d)", delay) )
 
 
-// PART 3 : save figure 1 as a result 
-fnamePDF = fullfile(RES_PATH, "Signals.pdf"); 
-xs2pdf(fig, fnamePDF)
+figure()
+plot(Time, A, '-b')
+plot(Time, B, '-k')
+legend("Signal A", "Signal B")
+xlabel("Sample number")
+ylabel("Signal value")
 
-// END : code example : plot a signal + noise 
-////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////
-// BEG : code example : call an external script  
 
-Mode_DisplayNothingInConsole = -1; 
-exec(fullfile(PRG_PATH, "FourrierAnalysis.sce"), Mode_DisplayNothingInConsole)
 
-// END: code example : call an external script  
 ////////////////////////////////////////////////////////////////////////////////
 
 
