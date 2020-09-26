@@ -40,7 +40,7 @@ function [delay, lags, c] = getDelayBetweenSignals(A, B)
         error("Inputs are should be vectors")
     end
     if max(size(A)) ~= max(size(B)) then
-//        error("Inputs should have the same size")
+        error("Inputs should have the same size")
     end
 
     // get the approximate time derivative 
