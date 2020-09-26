@@ -17,7 +17,7 @@ The situation is as follows :
 ![](DOC/Before.png)
 
 In the previous figure we see that:  
-* there is an offset between the two signals, and a small difference is scale
+* there is an offset between the two signals and a difference is scale
 * both signals show a drop
 * the "drops" in A and B should occur at the same time
 * if we "slide" signal B to the right (later in time) we get the best correspondance when the "drops" align, when B is sled of `Delay` samples.
@@ -29,8 +29,7 @@ Starting form the situation in the previous figure, we can rephrase the problem 
 ## Solution
 Because it the *same* signal that is recorded with two different sensors:
 
-* the frequency content of A and B is the same (except for some noise, that is supposed to be white => we can forget it safely).
-* the scaling of A and B is similar (we do not need to rescale one signal)
+* the frequency content of A and B is similar (except for some noise, and the fact that we do not record the same part of the movement...).
 
 Hence, we can use *cross correlation* between A and B to determine the time lag.
 Yet, because we do not want that A overlaps B, but we want that the **changes** in A and B are synchronised, we run `xcorr` on  `dA` and `dB`, where :  
@@ -60,22 +59,23 @@ Once we know the `delay`, we can plot `B` now synced with `A` :
 ![](DOC/After.png)
 
 ## Tests
-A piece of code can create signals with a **KNOWN** delay. If you turn the condition is the test to `%t`, you can change the delay `d`. 
+A piece of code can create signals with a **KNOWN** delay. If you turn the condition is the test to `%t`, you can change the delay `d`.
 ```scilab
 // create a known delay (for testing purpose)
 if %F then
-    d = -12; write(%io(2), sprintf("The KNOWN lag is %d samples ", d) )
-    if d >= 0 then
-        B = A(d+1:$); // create data using A only
-        A = A(1:$-d);
-    else
-        B = A(1:$+d); // create data using A only
-        A = A(abs(d)+1:$);
-    end
-    // switch A and B (for tests)
-    C = B;
-    B = A;
-    A = C;
+  d = -12; write(%io(2), sprintf("The KNOWN lag is %d samples ", d) )
+  if d >= 0 then
+      B = A(d+1:$); // create data using A only
+      A = A(1:$-d);
+  else
+      B = A(1:$+d); // create data using A only
+      A = A(abs(d)+1:$);
+  end
+  // switch A and B (for tests)
+  write(%io(2), sprintf("A and B were reversed: this changes the sign of the lag") )
+  C = B;
+  B = A;
+  A = C;
 end
 ```
 
